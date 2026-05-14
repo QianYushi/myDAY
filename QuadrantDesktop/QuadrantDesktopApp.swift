@@ -2303,6 +2303,21 @@ struct QuadrantView: View {
             }
 
             Spacer(minLength: 8)
+
+            Button(action: beginAdding) {
+                Image(systemName: "plus")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Palette.text3)
+                    .frame(width: 24, height: 24)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .background(
+                Circle()
+                    .fill(Palette.softBackground.opacity(0.72))
+            )
+            .help("新增任务")
+            .accessibilityLabel("新增任务")
         }
         .padding(.top, 18)
         .padding(.horizontal, 22)
@@ -2339,6 +2354,21 @@ struct QuadrantView: View {
     }
 
     private func beginAdding() {
+        if store.activeAddQuadrant == id {
+            addFocusSerial += 1
+            return
+        }
+
+        if store.activeAddQuadrant != nil {
+            NSApp.keyWindow?.makeFirstResponder(NSApp.keyWindow?.contentView)
+            DispatchQueue.main.async {
+                store.finishActiveAdd()
+                store.activateAdd(to: id)
+                addFocusSerial += 1
+            }
+            return
+        }
+
         store.activateAdd(to: id)
         addFocusSerial += 1
     }
