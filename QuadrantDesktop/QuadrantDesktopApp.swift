@@ -336,10 +336,6 @@ final class DesktopWindowController: NSWindowController, NSWindowDelegate {
             defer: false
         )
 
-        let rootView = ContentView(store: store, windowModeStore: windowModeStore)
-        let hostingView = FocusSinkHostingView(rootView: rootView)
-        window.contentView = hostingView
-        window.initialFirstResponder = hostingView
         window.title = ""
         window.isMovableByWindowBackground = false
         window.isReleasedWhenClosed = false
@@ -351,6 +347,16 @@ final class DesktopWindowController: NSWindowController, NSWindowDelegate {
 
         super.init(window: window)
 
+        let rootView = ContentView(
+            store: store,
+            windowModeStore: windowModeStore,
+            returnToDesktopLayer: { [weak self] in
+                self?.returnToDesktopLayer()
+            }
+        )
+        let hostingView = FocusSinkHostingView(rootView: rootView)
+        window.contentView = hostingView
+        window.initialFirstResponder = hostingView
         window.delegate = self
         applyMode(windowModeStore.mode, showWindow: false)
         windowModeCancellable = windowModeStore.$mode.dropFirst().sink { [weak self] mode in
@@ -382,6 +388,17 @@ final class DesktopWindowController: NSWindowController, NSWindowDelegate {
     func closeWindow() {
         settleTask?.cancel()
         window?.orderOut(nil)
+    }
+
+    func returnToDesktopLayer() {
+        settleTask?.cancel()
+        if windowModeStore.mode != .desktopResident {
+            windowModeStore.setMode(.desktopResident)
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.settleOnDesktop()
+        }
     }
 
     func windowDidBecomeKey(_ notification: Notification) {
@@ -1815,6 +1832,7 @@ private let emojiPalette = [
 struct ContentView: View {
     @ObservedObject var store: BoardStore
     @ObservedObject var windowModeStore: WindowModeStore
+    let returnToDesktopLayer: () -> Void
     @State private var now = Date()
     @AppStorage("quadrantDesktop.windowOpacity") private var windowOpacity = 1.0
 
@@ -1823,7 +1841,8 @@ struct ContentView: View {
             TitleBarView(
                 now: now,
                 windowOpacity: $windowOpacity,
-                windowModeStore: windowModeStore
+                windowModeStore: windowModeStore,
+                returnToDesktopLayer: returnToDesktopLayer
             )
             MatrixView(store: store)
         }
@@ -1891,6 +1910,7 @@ struct TitleBarView: View {
     let now: Date
     @Binding var windowOpacity: Double
     @ObservedObject var windowModeStore: WindowModeStore
+    let returnToDesktopLayer: () -> Void
 
     var body: some View {
         ZStack {
@@ -1898,9 +1918,15 @@ struct TitleBarView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             HStack(spacing: 14) {
-                BrandMark()
-                    .padding(.leading, 22)
-                    .allowsHitTesting(false)
+                Button(action: returnToDesktopLayer) {
+                    BrandMark()
+                        .frame(width: 22, height: 22)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .padding(.leading, 18)
+                .help("回到桌面底部")
+                .accessibilityLabel("回到桌面底部")
 
                 Text(AppMetadata.name)
                     .font(.system(size: 13, weight: .medium))

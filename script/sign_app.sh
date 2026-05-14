@@ -19,28 +19,40 @@ fi
 
 clean_app_metadata() {
   /usr/bin/SetFile -a b "$APP_BUNDLE" 2>/dev/null || true
+  /usr/bin/xattr -dr com.apple.FinderInfo "$APP_BUNDLE" 2>/dev/null || true
   /usr/bin/xattr -cr "$APP_BUNDLE"
   /usr/bin/xattr -d com.apple.FinderInfo "$APP_BUNDLE" 2>/dev/null || true
   /usr/bin/xattr -d "com.apple.fileprovider.fpfs#P" "$APP_BUNDLE" 2>/dev/null || true
   /usr/bin/xattr -d com.apple.macl "$APP_BUNDLE" 2>/dev/null || true
 }
 
-clean_app_metadata
+for attempt in 1 2 3 4 5; do
+  clean_app_metadata
 
-CODESIGN_ARGS=(
-  --force
-  --options runtime
-  --timestamp
-  --sign "$DEVELOPER_ID_IDENTITY"
-)
+  CODESIGN_ARGS=(
+    --force
+    --options runtime
+    --timestamp
+    --sign "$DEVELOPER_ID_IDENTITY"
+  )
 
-if [[ -f "$ENTITLEMENTS_PATH" ]]; then
-  CODESIGN_ARGS+=(--entitlements "$ENTITLEMENTS_PATH")
-fi
+  if [[ -f "$ENTITLEMENTS_PATH" ]]; then
+    CODESIGN_ARGS+=(--entitlements "$ENTITLEMENTS_PATH")
+  fi
 
-/usr/bin/codesign "${CODESIGN_ARGS[@]}" "$APP_BUNDLE"
-clean_app_metadata
-/usr/bin/codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
+  /usr/bin/codesign "${CODESIGN_ARGS[@]}" "$APP_BUNDLE"
+  clean_app_metadata
+
+  if /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"; then
+    break
+  fi
+
+  if [[ "$attempt" == "5" ]]; then
+    exit 1
+  fi
+
+  sleep 0.5
+done
 /usr/bin/codesign -dvvv "$APP_BUNDLE" 2>&1 | /usr/bin/sed -n '1,22p'
 
 echo "$APP_BUNDLE"

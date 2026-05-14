@@ -58,7 +58,7 @@ BACKGROUND_IMAGE="$BACKGROUND_DIR/background.png"
 import AppKit
 
 let outputPath = CommandLine.arguments[1]
-let canvas = NSSize(width: 760, height: 840)
+let canvas = NSSize(width: 620, height: 720)
 let image = NSImage(size: canvas)
 
 func color(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat, _ alpha: CGFloat = 1) -> NSColor {
@@ -93,16 +93,16 @@ image.lockFocus()
 color(255, 255, 255).setFill()
 NSRect(origin: .zero, size: canvas).fill()
 
-let folderRect = NSRect(x: 150, y: 82, width: 460, height: 294)
-let tabRect = NSRect(x: 150, y: 340, width: 168, height: 66)
-let tabCut = NSRect(x: 276, y: 340, width: 62, height: 32)
-let folderColor = color(221, 227, 249, 0.76)
+let folderRect = NSRect(x: 88, y: 22, width: 444, height: 286)
+let tabRect = NSRect(x: 88, y: 285, width: 214, height: 58)
+let tabCut = NSRect(x: 258, y: 285, width: 58, height: 30)
+let folderColor = color(224, 230, 251, 0.78)
 
 drawRounded(tabRect, radius: 7, fill: folderColor)
 color(255, 255, 255).setFill()
 NSBezierPath(rect: tabCut).fill()
 drawRounded(folderRect, radius: 8, fill: folderColor)
-drawChevronArrow(centerX: 380, topY: 470, bottomY: 350)
+drawChevronArrow(centerX: 310, topY: 414, bottomY: 320)
 
 image.unlockFocus()
 
@@ -135,22 +135,26 @@ fi
 
 /usr/bin/osascript <<APPLESCRIPT
 tell application "Finder"
-  tell disk "$VOL_NAME"
-    open
-    set current view of container window to icon view
-    set toolbar visible of container window to false
-    set statusbar visible of container window to false
-    set bounds of container window to {120, 80, 880, 920}
-    set theOptions to icon view options of container window
-    set arrangement of theOptions to not arranged
-    set icon size of theOptions to 128
-    set background picture of theOptions to file ".background:background.png"
-    set position of item "$APP_NAME.app" to {380, 210}
-    set position of item "Applications" to {380, 610}
-    update without registering applications
-    delay 1
-    close
+  open disk "$VOL_NAME"
+  delay 0.5
+  set targetWindow to front Finder window
+  set current view of targetWindow to icon view
+  set toolbar visible of targetWindow to false
+  set statusbar visible of targetWindow to false
+  set pathbar visible of targetWindow to false
+  set bounds of targetWindow to {120, 80, 740, 840}
+  set theOptions to icon view options of targetWindow
+  tell theOptions
+    set arrangement to not arranged
+    set icon size to 128
+    set text size to 13
+    set label position to bottom
+    set background picture to (POSIX file "$MOUNT_POINT/.background/background.png" as alias)
   end tell
+  set position of item "$APP_NAME.app" of disk "$VOL_NAME" to {310, 190}
+  set position of item "Applications" of disk "$VOL_NAME" to {310, 545}
+  delay 1.5
+  close targetWindow
 end tell
 APPLESCRIPT
 
