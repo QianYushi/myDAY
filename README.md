@@ -23,13 +23,15 @@
 
 https://github.com/QianYushi/myDAY/releases/latest
 
+发布版使用 Developer ID 签名，并通过 Apple 公证。
+
 然后：
 
 1. 打开 `myDAY.dmg`。
 2. 把 `myDAY.app` 拖到“应用程序”。
 3. 启动 `myDAY`。
 
-第一次打开时，macOS 可能会提示该应用来自互联网。请在系统设置中允许打开，或右键点击应用后选择“打开”。
+第一次打开时，macOS 仍可能提示该应用来自互联网，选择“打开”即可。
 
 ## 使用
 
@@ -55,4 +57,4 @@ https://github.com/QianYushi/myDAY/releases/latest
 
 ## 说明
 
-`myDAY` 不是 Mac App Store 应用。当前发布版用于个人本地使用，没有做 App Store 分发。
+`myDAY` 不是 Mac App Store 应用。当前发布版用于个人本地使用，采用 Developer ID 分发。
