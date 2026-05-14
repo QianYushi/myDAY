@@ -8,11 +8,22 @@ APP_PATH="$ROOT_DIR/$APP_NAME.app"
 OLD_APP_PATH="$ROOT_DIR/四象限.app"
 DERIVED_DATA="${TMPDIR:-/tmp}/QuadrantDesktopDerivedData"
 STAGED_ROOT="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/QuadrantDesktopSource.XXXXXX")"
+VALIDATION_APP="${TMPDIR:-/tmp}/$APP_NAME-build-validation.app"
 
 cleanup() {
   rm -rf "$STAGED_ROOT"
+  rm -rf "$VALIDATION_APP"
 }
 trap cleanup EXIT
+
+clean_metadata() {
+  local target="$1"
+  /usr/bin/xattr -cr "$target" 2>/dev/null || true
+  /usr/bin/xattr -dr com.apple.FinderInfo "$target" 2>/dev/null || true
+  /usr/bin/xattr -d com.apple.FinderInfo "$target" 2>/dev/null || true
+  /usr/bin/xattr -d "com.apple.fileprovider.fpfs#P" "$target" 2>/dev/null || true
+  /usr/bin/xattr -d com.apple.macl "$target" 2>/dev/null || true
+}
 
 cd "$ROOT_DIR"
 
@@ -40,17 +51,18 @@ rm -rf "$APP_PATH"
 if [[ "$OLD_APP_PATH" != "$APP_PATH" ]]; then
   rm -rf "$OLD_APP_PATH"
 fi
-/usr/bin/ditto "$BUILT_APP" "$APP_PATH"
-/usr/bin/xattr -cr "$APP_PATH" || true
+/usr/bin/ditto --norsrc --noextattr "$BUILT_APP" "$APP_PATH"
+clean_metadata "$APP_PATH"
+/usr/bin/codesign --force --deep --sign - "$APP_PATH" 2>/dev/null || true
+clean_metadata "$APP_PATH"
 
+/bin/rm -rf "$VALIDATION_APP"
+/usr/bin/ditto --norsrc --noextattr "$APP_PATH" "$VALIDATION_APP"
 for attempt in 1 2 3; do
-  /usr/bin/xattr -dr com.apple.FinderInfo "$APP_PATH" 2>/dev/null || true
-  /usr/bin/xattr -cr "$APP_PATH" || true
-  /usr/bin/codesign --force --deep --sign - "$APP_PATH"
-  /usr/bin/xattr -cr "$APP_PATH" || true
-  /usr/bin/xattr -dr com.apple.FinderInfo "$APP_PATH" 2>/dev/null || true
-  /usr/bin/xattr -d com.apple.FinderInfo "$APP_PATH" 2>/dev/null || true
-  if /usr/bin/codesign --verify --deep --strict --verbose=2 "$APP_PATH"; then
+  clean_metadata "$VALIDATION_APP"
+  /usr/bin/codesign --force --deep --sign - "$VALIDATION_APP"
+  clean_metadata "$VALIDATION_APP"
+  if /usr/bin/codesign --verify --deep --strict --verbose=2 "$VALIDATION_APP"; then
     break
   fi
   if [[ "$attempt" == "3" ]]; then
